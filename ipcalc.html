@@ -1,0 +1,328 @@
+<html>
+    <head>
+        <title>Network address Calculator</title>
+        <style>body{margin: 0; font-family: monospace; font-size: 1.7em;};</style>
+        <meta charset="UTF-8">
+</head>
+    <body>
+
+        <h1>Network address Calculator</h1>
+        <hr>
+
+        <div style="display: flex">
+
+            <div style="display: block">
+
+
+                <div id="userInput">
+                    <label>Ip Address:</label>
+                    <input type="text" id="ip">
+                    <span>/</span>
+                    <input type="text" id="cidr" size=2>
+                    <input type="button" type="number" id="calculate" value="計算">
+                    
+                    
+                    <br>
+                    <span id="judge" style="color: orangered;">　</span><br>
+                    <span id="errmsg" style="color: red;">　</span>
+                </div>
+
+
+                <div id="ipCalc">
+                    <h4>IP Calculate:</h4>
+                    <span id="ip_bin">　</span>
+                    <span>　←　IP</span>
+                    <br>
+                    <span id="cidr_bin_copy">　</span>
+                    <span>　←　Subnet mask</span>
+                    <br>
+
+
+                    <span id="networkPart" style="color: red;"></span><!--
+                    --><span id="hostPart" style="color: lightseagreen;"></span>
+                   
+                    <br><br>
+                    <span id="networkAddr"></span><span>　←　Network Address</span><br>
+                    <div align="right" id="networkAddrDec"></div>
+                    <span id="firstHost"></span><span>　←　First host address</span><br>
+                    <div align="right" id="firstHostDec"></div>
+                    <span>...</span><br>
+                    <span id="lastHost"></span><span>　←　Last host address</span><br>
+                    <div align="right" id="lastHostDec"></div>
+                    <span id="broadcastAddr"></span><span>　←　Broadcast Address</span>
+                    <div align="right" id="broadcastAddrDec"></div>
+
+                </div>
+
+            
+            </div>
+
+
+
+            <div name="cidrCalc" style="margin-left: 20px; padding-top: 4px;">
+                <span>→ Subnet mask: </span>
+                <br>
+                <span id="cidr_bin">　</span>
+                <br>
+                <span>↓ To dec:</span>
+                <br>
+                <span id="cidr_dec">　</span>
+            </div>
+
+            
+        </div>
+
+
+        <div style="position: absolute; background-color: black; height: 20px; width: 100%; text-align: center; bottom: 0;">
+            <span id="copyright" style="color: whitesmoke; font-size: .8em;">
+                Copyright © 2020 - salschoka & H-kys All right reserved.
+            </span>
+        </div>
+
+    </body>
+
+
+
+<script>
+    // Initialize obj
+    const judge = document.getElementById('judge');
+    const errmsg = document.getElementById('errmsg');
+    const calcButton = document.getElementById("calculate");
+    const ipInput = document.getElementById('ip');
+    const cidrInput = document.getElementById('cidr');
+    
+    const OUT_cidr_bin = document.getElementById('cidr_bin');
+    const OUT_cidr_dec = document.getElementById('cidr_dec');
+    const OUT_ip_bin = document.getElementById('ip_bin');
+
+    const OUT_networkPart = document.getElementById('networkPart');
+    const OUT_hostPart = document.getElementById('hostPart');
+
+    const OUT_networkAddr = document.getElementById('networkAddr');
+    const OUT_networkAddrDec = document.getElementById('networkAddrDec');
+    const OUT_broadcastAddr = document.getElementById('broadcastAddr');
+    const OUT_broadcastAddrDec = document.getElementById('broadcastAddrDec');
+
+    const OUT_firstHost = document.getElementById('firstHost');
+    const OUT_firstHostDec = document.getElementById('firstHostDec');
+    const OUT_lastHost = document.getElementById('lastHost');
+    const OUT_lastHostDec = document.getElementById('lastHostDec');
+
+    ipInput.onkeyup = function () {
+        calc();
+    }
+    
+    cidrInput.onkeyup = function () {
+        calc();
+    }
+    // Calculate button onclick event
+    calcButton.onclick = function () {
+        calc();
+    }
+
+    var calc = function () {
+        // Get value & Init error message
+        errmsg.innerText = "　";
+        judge.innerText = "　";
+        var IP = ipInput.value;
+        var cidr = cidrInput.value;
+
+
+        // Input check
+        if (!isIpAddress(IP)) {
+            errmsg.innerText = "IP address seems wrong!!";
+            return;
+        }
+        if (!isCidr(cidr)) {
+            errmsg.innerText = "CIDR seems wrong!!";
+            return;
+        }
+
+
+        // Input to Int
+        var IpArray_Str = IP.split('.');
+        var IpArray = [];
+        IpArray_Str.forEach(element => {
+            IpArray.push(parseInt(element))
+        });
+
+        var cidr = parseInt(cidr);
+        // End of Input to Int
+        // ----------------------
+        // cidr: int
+        // IpArray[]: int
+        // IP: string
+
+
+        // Output basic result
+        var ip_bin = decToBin(IpArray);         // 1011.1010.0001.1010
+        var cidr_bin = cidrToGroupBin(cidr);    // 1111.1111.1111.0000
+        var cidr_dec = binToDec(cidr_bin);      // 255.255.255.0
+
+        OUT_ip_bin.innerText = ip_bin;
+        OUT_cidr_bin.innerText = cidr_bin;
+        document.getElementById("cidr_bin_copy").innerText = cidr_bin;
+        OUT_cidr_dec.innerText = cidr_dec;
+
+        // Network/Host Part Line
+        {
+            var _inner = ""
+            for (var i = 0; i < cidr; i++) {
+                _inner += "-";
+            }
+            if (cidr === 8) {
+                _inner += " ";
+            }else if (cidr === 16) {
+                _inner += "-";
+                _inner += " ";
+            }else if (cidr === 24) {
+                _inner += "--";
+                _inner += " ";
+            } else if (cidr > 8 && cidr < 16) {
+                _inner += "-";
+            } else if (cidr > 16 && cidr < 24) {
+                _inner += "--";
+            } else if (cidr > 24) {
+                _inner += "---";
+            }
+            OUT_networkPart.innerText = _inner;
+            var _hostInner = "";
+            for (var i = 0; i<(35-_inner.length); i++) {
+                _hostInner += "-";
+            }
+
+            OUT_hostPart.innerText = _hostInner;
+        }
+        
+        // Calculate network addr & broadcast addr
+        //Calc net addr
+        var _ip_bin = ip_bin.replace(/\./g, "");
+        var _ip_network = _ip_bin.substr(0,cidr);
+        
+        var _ip_host="0";
+        _ip_host = _ip_host.repeat(32-cidr);
+
+        var _ip_net_addr = _ip_network + _ip_host;
+        var _ip_broad_addr = _ip_network + _ip_host.replace(/0/g,"1");
+
+        var _ip_firsthost = _ip_net_addr.substr(0, _ip_net_addr.length-1) + "1";
+        var _ip_lasthost = _ip_broad_addr.substr(0, _ip_broad_addr.length-1) + "0";
+        
+        OUT_networkAddr.innerText = binAddDot(_ip_net_addr);
+        OUT_broadcastAddr.innerText = binAddDot(_ip_broad_addr);
+
+        OUT_networkAddrDec.innerText = binToDec(binAddDot(_ip_net_addr));
+        OUT_broadcastAddrDec.innerText = binToDec(binAddDot(_ip_broad_addr));
+                
+        OUT_firstHost.innerText = binAddDot(_ip_firsthost);
+        OUT_lastHost.innerText = binAddDot(_ip_lasthost);
+        
+        OUT_firstHostDec.innerText = binToDec(binAddDot(_ip_firsthost));
+        OUT_lastHostDec.innerText = binToDec(binAddDot(_ip_lasthost));
+
+        // Judge TIME!
+        var _Jip_host = _ip_bin.substr(cidr,32);
+        if (_Jip_host.includes("1")) {
+            if (_Jip_host.includes("0")) {
+                judge.innerText = "This is a host address.";
+            } else {
+                judge.innerText = "This is a broadcast address.";
+            }
+        } else {
+            judge.innerText = "This is a network address.";
+        }
+
+    }
+
+function isIpAddress(str) {
+    var IPreg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
+    return IPreg.test(str);
+}
+
+function isCidr(str) {
+    var CIDRreg = /^([1-9]|1\d|2\d|30)$/;
+    return CIDRreg.test(str);
+}
+
+function cidrToBin(_cidr) {
+    var _result = "";
+    for (var i = 0; i < _cidr; i++) {
+        _result = _result.concat("1");
+    }
+    for (var i = 0; i < 32-_cidr; i++) {
+        _result = _result.concat("0");
+    }
+    return _result;
+}
+
+function cidrToGroupBin(_cidr) {
+    var _cidr_bin = cidrToBin(_cidr);
+
+    _result = "";
+    for (var i = 0; i < 4; i++) {
+        if (i != 3) {
+            _result = _result.concat(_cidr_bin.slice(8*i,8*(i+1))+".");
+        } else {
+            _result = _result.concat(_cidr_bin.slice(8*i,8*(i+1)));
+        }
+    }
+    return _result;
+}
+
+function binAddDot(str) {
+    if (str.length != 32) {
+        return;
+    }
+
+    var _result = "";
+    for (var i = 0; i < 4; i++) {
+        if (i != 3) {
+            _result += str.slice(8*i,8*(i+1))+".";
+        } else {
+            _result += str.slice(8*i,8*(i+1));
+        }
+    }
+    return _result;
+}
+
+/*
+ *  [192,168,0,0] => 1010.1010.1010.1010
+ *  @prama  array
+ *  @return string
+ */
+function decToBin(dec_array) {
+    var array = [];
+    dec_array.forEach((element) => {
+        var _octet = parseInt(element).toString(2);
+        var starting_zeros = "";
+        for(var i = 0; i < 8-_octet.length; i++) {
+            starting_zeros += "0";
+        }
+        _octet = starting_zeros.concat(_octet);
+        array.push(_octet);
+    });
+
+    return array.join(".");
+}
+
+/*
+ *  1010.1010.1010.1010 => 192.168.0.0
+ *  @prama  string
+ *  @return string
+ */
+function binToDec(str) {
+    var array = [];
+    
+    var bin_array = str.split('.');
+    bin_array.forEach((element) => {
+        array.push(parseInt(element,2));
+    })
+
+    return array.join(".");
+}
+
+
+    
+</script>
+
+</html>
